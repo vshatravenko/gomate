@@ -8,5 +8,8 @@ build:
 test:
 	go test ./...
 
+bench:
+	go test ./... -bench .
+
 clean:
 	rm bin/gomate
