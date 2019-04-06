@@ -51,9 +51,9 @@ func (store *KVStore) Get(key string, value interface{}) error {
 	return store.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket(bucketName)
 
-		if v := bucket.Get([]byte("key")); v != nil {
+		if v := bucket.Get([]byte(key)); v != nil {
 			d := gob.NewDecoder(bytes.NewReader(v))
-			return d.Decode(v)
+			return d.Decode(value)
 		}
 
 		return ErrNotFound
