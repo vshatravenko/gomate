@@ -56,15 +56,33 @@ func (store *KVStore) Get(key string, value interface{}) error {
 			return d.Decode(v)
 		}
 
-		return nil
+		return ErrNotFound
 	})
-
 }
 
 func (store *KVStore) Put(key string, value interface{}) error {
-	return nil
+	if value == nil {
+		return ErrBadValue
+	}
+
+	var buf bytes.Buffer
+	if err := gob.NewEncoder(&buf).Encode(value); err != nil {
+		return err
+	}
+
+	return store.db.Update(func(tx *bolt.Tx) error {
+		return tx.Bucket(bucketName).Put([]byte(key), buf.Bytes())
+	})
 }
 
 func (store *KVStore) Delete(key string) error {
-	return nil
+	return store.db.Update(func(tx *bolt.Tx) error {
+		c := tx.Bucket(bucketName).Cursor()
+
+		if k, _ := c.Seek([]byte(key)); k == nil || string(k) != key {
+			return ErrNotFound
+		}
+
+		return c.Delete()
+	})
 }
