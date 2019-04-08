@@ -5,9 +5,37 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/vshatravenko/gomate/pkg/storage"
 )
 
-var commands = []string{"start", "stop", "status", "daemon"}
+var (
+	commands    = []string{"start", "stop", "status", "daemon"}
+	storageDir  = os.Getenv("HOME") + "/.gomate"
+	storageFile = storageDir + "/main.db"
+)
+
+func handleStart() error {
+	db, err := storage.Open(storageFile)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	defer fmt.Println("Started the timer!")
+	return db.Put("state", "started")
+}
+
+func handleStop() error {
+	db, err := storage.Open(storageFile)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	defer fmt.Println("Stopped the timer!")
+	return db.Put("state", "stopped")
+}
 
 func handleCmd() error {
 	if len(os.Args[1:]) == 0 {
@@ -16,13 +44,11 @@ func handleCmd() error {
 
 	switch os.Args[1] {
 	case "start":
-		fmt.Println("start")
-		return nil
+		return handleStart()
 	case "stop":
-		fmt.Println("start")
-		return nil
+		return handleStop()
 	case "status":
-		fmt.Println("start")
+		fmt.Println("status")
 		return nil
 	default:
 		fmt.Println("Available commands:", strings.Join(commands, " "))
@@ -30,9 +56,27 @@ func handleCmd() error {
 	}
 }
 
-func main() {
-	err := handleCmd()
+func initStorage() error {
+	if _, ok := os.Stat(storageDir); os.IsNotExist(ok) {
+		fmt.Printf("Initializing the storage directory at %s\n", storageDir)
+		err := os.Mkdir(storageDir, 0755)
 
+		if err != nil {
+			return fmt.Errorf("couldn't create the storage dir: %s", err)
+		}
+	}
+
+	return nil
+}
+
+func main() {
+	err := initStorage()
+	if err != nil {
+		fmt.Printf("Error while initializing the storage dir: %s\n", err)
+		os.Exit(1)
+	}
+
+	err = handleCmd()
 	if err != nil {
 		fmt.Printf("Error while handling a command: %s\n", err)
 		os.Exit(-1)
