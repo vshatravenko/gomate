@@ -36,12 +36,17 @@ func handleStart() error {
 
 	startTime := time.Now()
 
-	err = db.Put("state", "started")
+	err = db.Put("startTime", startTime)
 	if err != nil {
 		return err
 	}
 
-	err = db.Put("startTime", startTime)
+	err = db.Put("remainingTime", 25*time.Minute)
+	if err != nil {
+		return err
+	}
+
+	err = db.Put("state", "started")
 	if err != nil {
 		return err
 	}
@@ -68,6 +73,11 @@ func handleStop() error {
 		return nil
 	}
 
+	err = db.Put("remainingTime", time.Duration(0))
+	if err != nil {
+		return err
+	}
+
 	defer fmt.Println("Stopped the timer!")
 	return db.Put("state", "stopped")
 }
@@ -91,9 +101,16 @@ func handleStatus() error {
 		return err
 	}
 
+	var remainingTime time.Duration
+	err = db.Get("remainingTime", &remainingTime)
+	if err != nil {
+		return err
+	}
+
 	fmt.Printf("The timer is currently %s!\n", state)
 	if state == "started" {
 		fmt.Printf("Started at %s\n", startTime.Format("3:04PM"))
+		fmt.Printf("Remaining time: %s\n", remainingTime)
 	}
 	return nil
 }
