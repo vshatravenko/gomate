@@ -37,6 +37,23 @@ func handleStop() error {
 	return db.Put("state", "stopped")
 }
 
+func handleStatus() error {
+	db, err := storage.Open(storageFile)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	var state string
+	err = db.Get("state", &state)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("The timer is currently %s!\n", state)
+	return nil
+}
+
 func handleCmd() error {
 	if len(os.Args[1:]) == 0 {
 		return errors.New("no commands passed")
@@ -48,8 +65,7 @@ func handleCmd() error {
 	case "stop":
 		return handleStop()
 	case "status":
-		fmt.Println("status")
-		return nil
+		return handleStatus()
 	default:
 		fmt.Println("Available commands:", strings.Join(commands, " "))
 		return errors.New("unrecognized command")
