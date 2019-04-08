@@ -22,6 +22,17 @@ func handleStart() error {
 	}
 	defer db.Close()
 
+	var state string
+	err = db.Get("state", &state)
+	if err != nil {
+		return err
+	}
+
+	if state == "started" {
+		fmt.Println("The timer is already started!")
+		return nil
+	}
+
 	defer fmt.Println("Started the timer!")
 	return db.Put("state", "started")
 }
@@ -32,6 +43,17 @@ func handleStop() error {
 		return err
 	}
 	defer db.Close()
+
+	var state string
+	err = db.Get("state", &state)
+	if err != nil {
+		return err
+	}
+
+	if state == "stopped" {
+		fmt.Println("The timer is already stopped!")
+		return nil
+	}
 
 	defer fmt.Println("Stopped the timer!")
 	return db.Put("state", "stopped")
