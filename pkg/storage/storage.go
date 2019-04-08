@@ -22,7 +22,7 @@ var (
 
 func Open(path string) (*KVStore, error) {
 	opts := &bolt.Options{
-		Timeout: 50 * time.Millisecond,
+		Timeout: 1 * time.Second,
 	}
 
 	db, err := bolt.Open(path, 0640, opts)
