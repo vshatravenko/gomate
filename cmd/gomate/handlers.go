@@ -127,6 +127,9 @@ func handleDaemon() error {
 
 			var state string
 			err = db.Get("state", &state)
+			if err != nil {
+				return err
+			}
 
 			if state == "started" {
 				var remainingTime time.Duration
