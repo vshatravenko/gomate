@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/vshatravenko/gomate/pkg/storage"
 )
@@ -33,8 +34,20 @@ func handleStart() error {
 		return nil
 	}
 
-	defer fmt.Println("Started the timer!")
-	return db.Put("state", "started")
+	startTime := time.Now()
+
+	err = db.Put("state", "started")
+	if err != nil {
+		return err
+	}
+
+	err = db.Put("startTime", startTime)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Started the timer!")
+	return nil
 }
 
 func handleStop() error {
@@ -72,7 +85,16 @@ func handleStatus() error {
 		return err
 	}
 
+	var startTime time.Time
+	err = db.Get("startTime", &startTime)
+	if err != nil {
+		return err
+	}
+
 	fmt.Printf("The timer is currently %s!\n", state)
+	if state == "started" {
+		fmt.Printf("Started at %s\n", startTime.Format("3:04PM"))
+	}
 	return nil
 }
 
