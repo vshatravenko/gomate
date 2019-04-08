@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/vshatravenko/gomate/pkg/storage"
@@ -104,6 +106,60 @@ func handleStop() error {
 	return db.Put("state", "stopped")
 }
 
+// handleDaemon starts a process which would check the state of GoMate and act accordingly each second
+func handleDaemon() error {
+	sigs := make(chan os.Signal, 1)
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+
+	// Register sigs to receive shutdown signals
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	fmt.Println("GoMate daemon started successfully!\nPress Ctrl+C to stop")
+	for {
+		select {
+		case <-ticker.C:
+			db, err := storage.Open(storageFile)
+
+			if err != nil {
+				return err
+			}
+
+			var state string
+			err = db.Get("state", &state)
+
+			if state == "started" {
+				var remainingTime time.Duration
+				err = db.Get("remainingTime", &remainingTime)
+				if err != nil {
+					return err
+				}
+
+				remainingTime -= 1 * time.Second
+				err = db.Put("remainingTime", remainingTime)
+				if err != nil {
+					return err
+				}
+
+				if remainingTime == 0*time.Second {
+					err = db.Put("state", "stopped")
+					if err != nil {
+						return err
+					}
+				}
+
+				if err = db.Close(); err != nil {
+					return err
+				}
+			}
+
+		case <-sigs:
+			fmt.Println("\nReceived a shutdown signal, exiting")
+			return nil
+		}
+	}
+}
+
 func handleStatus() error {
 	db, err := storage.Open(storageFile)
 	if err != nil {
@@ -149,6 +205,8 @@ func handleCmd() error {
 		return handleStop()
 	case "status":
 		return handleStatus()
+	case "daemon":
+		return handleDaemon()
 	default:
 		fmt.Println("Available commands:", strings.Join(commands, " "))
 		return errors.New("unrecognized command")
