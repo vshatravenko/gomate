@@ -62,8 +62,17 @@ func initStorage() error {
 		err := os.Mkdir(storageDir, 0755)
 
 		if err != nil {
-			return fmt.Errorf("couldn't create the storage dir: %s", err)
+			return err
 		}
+
+		fmt.Println("Initializing the storage")
+		db, err := storage.Open(storageFile)
+		if err != nil {
+			return err
+		}
+		defer db.Close()
+
+		return db.Put("state", "stopped")
 	}
 
 	return nil
